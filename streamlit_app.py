@@ -6,7 +6,7 @@ import pandas as pd
 
 # Title and description of the app
 st.title("Bank Term Deposit Prediction")
-st.write("Predict whether a client will subscribe to a term deposit based on provided features. Created by Ataberk Kılavuzcu, Bora Kutun, Can Mızraklı and Umut Ulaş Balcı")
+st.write("Predict whether a client will subscribe to a term deposit based on provided features. Created by Ataberk Kılavuzcu, Bora Kutun, Can Mızraklı and Umut Ulaş Balcı.")
 
 # Load the trained model
 try:
