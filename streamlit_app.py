@@ -3,6 +3,7 @@ import streamlit as st
 import pickle
 import numpy as np
 import pandas as pd
+import os
 
 # Title and description of the app
 st.title("Bank Term Deposit Prediction")
@@ -88,3 +89,15 @@ if st.button("Predict"):
         st.write(f"Prediction probabilities: {prediction_proba}")
     except Exception as e:
         st.error(f"An error occurred during prediction: {e}")
+
+
+# Check if the model file exists
+model_path = 'final_model.pkl'
+
+if not os.path.exists(model_path):
+    st.error("Model file 'final_model.pkl' not found. Please upload it to the repository.")
+    st.stop()
+
+# Load the model
+with open(model_path, 'rb') as file:
+    model = pickle.load(file)
