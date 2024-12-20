@@ -1,109 +1,90 @@
-import os
-import pickle
-import pandas as pd
-import numpy as np
+# Import necessary libraries
 import streamlit as st
+import pickle
+import numpy as np
+import pandas as pd
 
-# App title
+# Title and description of the app
 st.title("Bank Term Deposit Prediction")
 st.write("Predict whether a client will subscribe to a term deposit based on provided features.")
 
-# Check if the model file exists
-model_path = 'final_model.pkl'
-
-if not os.path.exists(model_path):
-    st.error("Model file 'final_model.pkl' not found. Please upload it to the repository.")
+# Load the trained model
+try:
+    model = pickle.load(open('final_model.pkl', 'rb'))
+except FileNotFoundError:
+    st.error("Model file 'final_model.pkl' not found. Please ensure the model is in the same directory as this script.")
     st.stop()
 
-# Load the trained model
-with open(model_path, 'rb') as file:
-    model = pickle.load(file)
-
-# Feature input form
-st.sidebar.header("Input Features")
-
-age = st.sidebar.number_input("Age", min_value=18, max_value=100, value=30)
-job = st.sidebar.selectbox(
-    "Job",
-    options=[
-        "admin.", "blue-collar", "entrepreneur", "housemaid", "management",
-        "retired", "self-employed", "services", "student", "technician", "unemployed", "unknown"
-    ]
-)
-marital = st.sidebar.selectbox(
-    "Marital Status",
-    options=["married", "single", "divorced", "unknown"]
-)
-education = st.sidebar.selectbox(
-    "Education",
-    options=["basic.4y", "basic.6y", "basic.9y", "high.school", "illiterate", "professional.course", "university.degree", "unknown"]
-)
-default = st.sidebar.selectbox(
-    "Has Credit in Default?", options=["yes", "no", "unknown"]
-)
-housing = st.sidebar.selectbox(
-    "Has Housing Loan?", options=["yes", "no", "unknown"]
-)
-loan = st.sidebar.selectbox(
-    "Has Personal Loan?", options=["yes", "no", "unknown"]
-)
-contact = st.sidebar.selectbox(
-    "Contact Communication Type", options=["cellular", "telephone", "unknown"]
-)
-month = st.sidebar.selectbox(
-    "Last Contact Month",
-    options=["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
-)
-day_of_week = st.sidebar.selectbox(
-    "Last Contact Day of the Week", options=["mon", "tue", "wed", "thu", "fri"]
-)
-duration = st.sidebar.number_input("Duration of Last Contact (seconds)", min_value=0, max_value=5000, value=0)
-campaign = st.sidebar.number_input("Number of Contacts in this Campaign", min_value=1, max_value=50, value=1)
-pdays = st.sidebar.number_input("Days since Client was Last Contacted", min_value=-1, max_value=999, value=-1)
-previous = st.sidebar.number_input("Number of Contacts Before this Campaign", min_value=0, max_value=100, value=0)
-poutcome = st.sidebar.selectbox(
-    "Outcome of Previous Campaign", options=["failure", "success", "nonexistent"]
-)
-
-# Input Data Preparation
-input_data = pd.DataFrame({
-    'age': [age],
-    'job': [job],
-    'marital': [marital],
-    'education': [education],
-    'default': [default],
-    'housing': [housing],
-    'loan': [loan],
-    'contact': [contact],
-    'month': [month],
-    'day_of_week': [day_of_week],
-    'duration': [duration],
-    'campaign': [campaign],
-    'pdays': [pdays],
-    'previous': [previous],
-    'poutcome': [poutcome]
-})
-
-# Ensure the features match the model's requirements
-if os.path.exists("feature_names.pkl"):
-    with open("feature_names.pkl", "rb") as f:
+# Load feature names
+try:
+    with open('feature_names.pkl', 'rb') as f:
         feature_names = pickle.load(f)
-    input_data = pd.get_dummies(input_data)
-    input_data = input_data.reindex(columns=feature_names, fill_value=0)
+except FileNotFoundError:
+    st.error("Feature names file 'feature_names.pkl' not found. Please ensure it is in the same directory as this script.")
+    st.stop()
 
-# Make Prediction
+# Input fields for user-provided data
+st.header("Input Client Features")
+age = st.number_input("Age", min_value=18, max_value=100, value=30)
+job = st.selectbox("Job", ["admin.", "technician", "services", "management", "retired", "blue-collar", 
+                           "unemployed", "unknown", "self-employed", "entrepreneur", "housemaid", "student"])
+marital = st.selectbox("Marital Status", ["married", "single", "divorced"])
+education = st.selectbox("Education", ["unknown", "secondary", "primary", "tertiary"])
+default = st.selectbox("Has Credit in Default?", ["no", "yes"])
+balance = st.number_input("Balance (in euros)", min_value=-2000, max_value=100000, value=0)
+housing = st.selectbox("Has Housing Loan?", ["no", "yes"])
+loan = st.selectbox("Has Personal Loan?", ["no", "yes"])
+contact = st.selectbox("Contact Communication Type", ["unknown", "cellular", "telephone"])
+day = st.number_input("Day of the Month (Last Contact)", min_value=1, max_value=31, value=15)
+month = st.selectbox("Month of Last Contact", ["jan", "feb", "mar", "apr", "may", "jun", 
+                                                "jul", "aug", "sep", "oct", "nov", "dec"])
+duration = st.number_input("Duration of Last Contact (seconds)", min_value=0, max_value=5000, value=0)
+campaign = st.number_input("Number of Contacts During Campaign", min_value=1, max_value=50, value=1)
+pdays = st.number_input("Days Since Client Was Last Contacted (-1 means never)", min_value=-1, max_value=999, value=-1)
+previous = st.number_input("Number of Contacts Before this Campaign", min_value=0, max_value=50, value=0)
+poutcome = st.selectbox("Outcome of Previous Campaign", ["unknown", "success", "failure", "other"])
+
+# Create a dictionary for user input
+input_dict = {
+    "age": age,
+    "job": job,
+    "marital": marital,
+    "education": education,
+    "default": default,
+    "balance": balance,
+    "housing": housing,
+    "loan": loan,
+    "contact": contact,
+    "day": day,
+    "month": month,
+    "duration": duration,
+    "campaign": campaign,
+    "pdays": pdays,
+    "previous": previous,
+    "poutcome": poutcome
+}
+
+# Convert user input into a DataFrame for preprocessing
+input_df = pd.DataFrame([input_dict])
+
+# Apply one-hot encoding to match training preprocessing
+input_df = pd.get_dummies(input_df)
+
+# Reorder the input DataFrame to match the model's training feature order
+input_df = input_df.reindex(columns=feature_names, fill_value=0)
+
+# Prediction button
 if st.button("Predict"):
     try:
-        prediction = model.predict(input_data)
-        prediction_proba = model.predict_proba(input_data)
+        prediction = model.predict(input_df)
+        prediction_proba = model.predict_proba(input_df)
 
         # Display results
         if prediction[0] == 1:
             st.success("The client is likely to subscribe to the term deposit.")
         else:
-            st.warning("The client is unlikely to subscribe to the term deposit.")
+            st.warning("The client is not likely to subscribe to the term deposit.")
 
         st.write(f"Prediction probabilities: {prediction_proba}")
-
     except Exception as e:
-        st.error(f"An error occurred during prediction: {str(e)}")
+        st.error(f"An error occurred during prediction: {e}")
